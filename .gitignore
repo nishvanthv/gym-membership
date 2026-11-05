@@ -1,0 +1,9 @@
+node_modules/
+.npm-cache/
+.env
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+coverage/

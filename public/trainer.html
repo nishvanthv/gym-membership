@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gym Management System | Trainer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="/css/style.css" rel="stylesheet" />
+</head>
+<body>
+  <nav class="navbar navbar-dark mb-4">
+    <div class="container d-flex justify-content-between">
+      <span class="navbar-brand">Gym Management System</span>
+      <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+  <div class="container pb-5">
+    <div id="pageAlert" class="alert alert-custom"></div>
+    <div class="card p-3 mb-3">
+      <h5>Assigned Classes</h5>
+      <div id="classes"></div>
+    </div>
+    <div class="card p-3 mb-3">
+      <h5>Class Attendance</h5>
+      <div class="d-flex gap-2 mb-2">
+        <select class="form-select" id="classSelect"></select>
+        <button class="btn btn-success" onclick="loadAttendance()">Load</button>
+      </div>
+      <div id="attendance"></div>
+    </div>
+    <div class="card p-3">
+      <h5>Add Member Note</h5>
+      <select class="form-select mb-2" id="memberSelect"></select>
+      <select class="form-select mb-2" id="noteType">
+        <option>WORKOUT</option>
+        <option>DIET</option>
+        <option>GENERAL</option>
+      </select>
+      <input class="form-control mb-2" id="noteTitle" placeholder="Title" />
+      <textarea class="form-control mb-2" id="noteContent" placeholder="Content"></textarea>
+      <button class="btn btn-success" onclick="addNote()">Save note</button>
+    </div>
+  </div>
+  <script src="/js/api.js"></script>
+  <script>
+    requireRole(['TRAINER']);
+    async function load() {
+      const dash = await api('/trainer/dashboard');
+      const classes = dash.data.assignedClasses;
+      document.getElementById('classes').innerHTML = classes.map((c) =>
+        `<div>${c.title} | ${c.status} | ${new Date(c.startTime).toLocaleString()} (${c.bookedCount}/${c.capacity})</div>`
+      ).join('') || 'None';
+      document.getElementById('classSelect').innerHTML = classes.map((c) => `<option value="${c._id}">${c.title}</option>`).join('');
+      const members = await api('/branches/members');
+      document.getElementById('memberSelect').innerHTML = members.data.map((m) => `<option value="${m._id}">${m.name}</option>`).join('');
+    }
+    async function loadAttendance() {
+      const id = document.getElementById('classSelect').value;
+      const res = await api('/attendance/class/' + id);
+      document.getElementById('attendance').innerHTML = res.data.map((a) => `<div>${a.memberId.name} | ${new Date(a.date).toLocaleString()}</div>`).join('') || 'No attendance yet';
+    }
+    async function addNote() {
+      try {
+        const memberId = document.getElementById('memberSelect').value;
+        await api('/members/' + memberId + '/notes', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: document.getElementById('noteType').value,
+            title: document.getElementById('noteTitle').value,
+            content: document.getElementById('noteContent').value
+          })
+        });
+        showAlert('pageAlert', 'Note saved', true);
+      } catch (err) { showAlert('pageAlert', err.message); }
+    }
+    load().catch((err) => showAlert('pageAlert', err.message));
+  </script>
+</body>
+</html>
